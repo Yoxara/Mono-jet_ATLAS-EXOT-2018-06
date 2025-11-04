@@ -5,7 +5,8 @@
 
 from __future__ import print_function
 import sys,os,glob
-from configParserWrapper import ConfigParserExt
+sys.path.append('../../../')
+from configParserWrapper_loop import ConfigParserExt
 import logging,shutil
 import subprocess
 import multiprocessing
@@ -35,7 +36,7 @@ def generateProcess(parser):
     delphesCard = os.path.abspath(pars["delphescard"])
     pythiaCard = os.path.abspath(pars["pythia8card"])
     
-
+    
     if not os.path.isfile(runCard):
         logger.error('Run card %s not found.' %runCard)
         raise ValueError()
@@ -82,7 +83,7 @@ def generateProcess(parser):
             f.write(l)
     
     #Generate process
-    mg5Folder = os.path.abspath('../MG5')
+    mg5Folder = os.path.abspath('../../MG5')
     run = subprocess.Popen('./bin/mg5_aMC -f %s' %procCard,shell=True,
                                 stdout=subprocess.PIPE,stderr=subprocess.PIPE,
                                 cwd=mg5Folder)
@@ -141,11 +142,10 @@ def generateEvents(parser):
     
     t0 = time.time()
     pars = parser["MadGraphPars"]
-    #deleteHepMC = parser['options'].get('deleteHepMC', 'True').lower() in ['true', '1', 'yes']
-    deleteHepMC = str(parser['options'].get('deleteHepMC', 'True')).lower() in ['true', '1', 'yes']
-   # deleteHepMC = parser['options'].getboolean('deleteHepMC', fallback=True)
 
-
+    comms = parser["MadGraphSet"]
+    # Set the MadGraph parameters defined in the ini file
+ 
     if not 'runFolder' in pars:
         logger.error('Run folder not defined.')
         return False        
@@ -208,6 +208,7 @@ def generateEvents(parser):
         commandsFileF.write('detector=Delphes\n')
     else:
         commandsFileF.write('detector=OFF\n')
+    commandsFileF.write('analysis=OFF\n')
 
     commandsFileF.write('done\n')
     comms = parser["MadGraphSet"]
@@ -215,8 +216,8 @@ def generateEvents(parser):
     for key,val in comms.items():
         commandsFileF.write('set %s %s\n' %(key,val))
     # If cleanOutput = True, do not store the HepMC file (faster run):
-    #if cleanOutput:
-    #    commandsFileF.write('set HEPMCoutput:file hepmcremove\n')
+    if cleanOutput:
+        commandsFileF.write('set HEPMCoutput:file hepmcremove\n')
 
     #Done setting up options
     commandsFileF.write('done\n')
@@ -252,15 +253,10 @@ def generateEvents(parser):
         logger.debug('Removing  %s' %lheFile)
         if os.path.isfile(lheFile):
             os.remove(lheFile)
-        #hepmcFile = os.path.join(runFolder,'Events',runInfo['run number'], '%s_pythia8_events.hepmc.gz'  %runInfo['run tag'])
-        #logger.debug('Removing  %s' %hepmcFile)
-        #if os.path.isfile(hepmcFile):
-        #    os.remove(hepmcFile)
-        hepmcFile = os.path.join(runFolder, 'Events', runInfo['run number'], f"{runInfo['run tag']}_pythia8_events.hepmc.gz")
-        if deleteHepMC:  # Only delete HepMC if deleteHepMC is True
-            logger.debug('Removing  %s' % hepmcFile)
-            if os.path.isfile(hepmcFile):
-               os.remove(hepmcFile)
+        hepmcFile = os.path.join(runFolder,'Events',runInfo['run number'], '%s_pythia8_events.hepmc.gz'  %runInfo['run tag'])
+        logger.debug('Removing  %s' %hepmcFile)
+        if os.path.isfile(hepmcFile):
+            os.remove(hepmcFile)
         logFile = os.path.join(runFolder,'Events',runInfo['run number'], '%s_pythia8.log'  %runInfo['run tag'])
         logger.debug('Removing  %s' %logFile)
         if os.path.isfile(logFile):
@@ -388,11 +384,12 @@ if __name__ == "__main__":
     # First make sure the correct env variables have been set:
     LDPATH = subprocess.check_output('echo $LD_LIBRARY_PATH',shell=True,text=True)
     ROOTINC = subprocess.check_output('echo $ROOT_INCLUDE_PATH',shell=True,text=True)
-    pythiaDir = os.path.abspath('../MG5/HEPTools/pythia8/lib')
-    delphesDir = os.path.abspath('../MG5/Delphes/external')
+    print(ROOTINC)
+    pythiaDir = os.path.abspath('../../MG5/HEPTools/pythia8/lib')
+    delphesDir = os.path.abspath('../../MG5/Delphes/external')
    # if pythiaDir not in LDPATH or delphesDir not in ROOTINC:
-   #     print('Enviroment variables not properly set. Run source setenv.sh first.')
-   #     sys.exit()
+   #    print('Enviroment variables not properly set. Run source setenv.sh first.')
+    #    sys.exit()
 
 
     t0 = time.time()
